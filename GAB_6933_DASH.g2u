@@ -1,0 +1,241 @@
+Program.Sub.ScreenSU.Start
+Gui.F_Cancel..Create
+Gui.F_Cancel..Caption("GAB Cancelliation History")
+Gui.F_Cancel..Size(14055,10890)
+Gui.F_Cancel..MinX(0)
+Gui.F_Cancel..MinY(0)
+Gui.F_Cancel..Position(0,0)
+Gui.F_Cancel..MousePointer(0)
+Gui.F_Cancel..Event(UnLoad,Unload)
+Gui.F_Cancel..BackColor(-2147483633)
+Gui.F_Cancel.tab1.Create(Tab)
+Gui.F_Cancel.tab1.Size(13560,9225)
+Gui.F_Cancel.tab1.Position(165,975)
+Gui.F_Cancel.tab1.Tabs(2)
+Gui.F_Cancel.tab1.SetTab(0)
+Gui.F_Cancel.tab1.Caption("PO Receipt")
+Gui.F_Cancel.tab1.SetTab(1)
+Gui.F_Cancel.tab1.Caption("Shipment")
+Gui.F_Cancel.GsGCRC.Create(GsGridControl)
+Gui.F_Cancel.GsGCRC.Size(13230,8700)
+Gui.F_Cancel.GsGCRC.Position(30,90)
+Gui.F_Cancel.GsGCRC.Parent("tab1",0)
+Gui.F_Cancel.GsGCSH.Create(GsGridControl)
+Gui.F_Cancel.GsGCSH.Size(13335,8655)
+Gui.F_Cancel.GsGCSH.Position(30,45)
+Gui.F_Cancel.GsGCSH.Parent("tab1",1)
+Gui.F_Cancel.dtpBeg.Create(DatePicker)
+Gui.F_Cancel.dtpBeg.Size(1935,285)
+Gui.F_Cancel.dtpBeg.Position(300,450)
+Gui.F_Cancel.dtpEnd.Create(DatePicker)
+Gui.F_Cancel.dtpEnd.Size(1935,285)
+Gui.F_Cancel.dtpEnd.Position(2580,465)
+Gui.F_Cancel.lbl1.Create(Label,"Beg. Date",True,1935,255,0,300,195,True,0,"Arial",8,-2147483633,0)
+Gui.F_Cancel.lbl2.Create(Label,"End. Date",True,1935,255,0,2580,225,True,0,"Arial",8,-2147483633,0)
+Gui.F_Cancel.cmdRefresh.Create(Button)
+Gui.F_Cancel.cmdRefresh.Size(1365,375)
+Gui.F_Cancel.cmdRefresh.Position(4815,420)
+Gui.F_Cancel.cmdRefresh.Caption("Refresh")
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+V.Local.bExist.Declare
+
+F.ODBC.Connection!con.OpenCompanyConnection(500)
+
+'Check if custom table exists
+F.ODBC.Connection!con.TableExists("GAB_6933_RC",V.Local.bExist)
+F.Intrinsic.Control.If(V.Local.bExist,=,False)
+	F.ODBC.Connection!con.Execute("CREATE TABLE GAB_6933_RC(RECEIVER_NO VARCHAR(6), DATE_TRANSACTION DATE, REASON VARCHAR(100), USER_ID VARCHAR(8), DATE_ACTION DATE);")
+F.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!con.TableExists("GAB_6933_SH",V.Local.bExist)
+F.Intrinsic.Control.If(V.Local.bExist,=,False)
+	F.ODBC.Connection!con.Execute("CREATE TABLE GAB_6933_SH(PCK_NO VARCHAR(7), DATE_TRANSACTION DATE, REASON VARCHAR(100), USER_ID VARCHAR(8), DATE_ACTION DATE);")
+F.Intrinsic.Control.EndIf
+
+f.Intrinsic.Control.CallSub(Refresh)
+
+Gui.F_Cancel.tab1.SetTab(0)
+Gui.F_Cancel.tab1.Anchor(15)
+Gui.F_Cancel.GsGCRC.Anchor(15)
+Gui.F_Cancel.GsGCSH.Anchor(15)
+Gui.F_Cancel..Show
+
+Program.Sub.Main.End
+
+Program.Sub.Refresh.Start
+'Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+V.Local.dBeg.Declare
+V.Local.dEnd.Declare
+v.Local.sSQL.Declare
+
+Gui.F_Cancel.dtpBeg.Value(V.Ambient.Date)
+Gui.F_Cancel.dtpEnd.Value(V.Ambient.Date)
+
+V.Local.dBeg.Set(V.Screen.F_Cancel!dtpBeg.Value)
+V.Local.dEnd.Set(V.Screen.F_Cancel!dtpEnd.Value)
+
+F.Intrinsic.Control.If(V.DataTable.dtRC.Exists)
+	F.Data.DataTable.Close("dtRC")
+	F.Data.DataTable.Close("dtSH")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("Select * From GAB_6933_RC Where Date_Action between '{0}' and '{1}'",V.Local.dBeg.PervasiveDate, V.Local.dEnd.PervasiveDate, v.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtRC","con",V.Local.sSQL,True)
+
+F.Intrinsic.String.Build("Select * From GAB_6933_SH Where Date_Action between '{0}' and '{1}'",V.Local.dBeg.PervasiveDate, V.Local.dEnd.PervasiveDate, v.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtSH","con",V.Local.sSQL,True)
+
+F.Intrinsic.Control.CallSub(LoadGVRC)
+F.Intrinsic.Control.CallSub(LoadGVSH)
+
+Program.Sub.Refresh.End
+
+Program.Sub.LoadGvRC.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.iNum.Declare
+	v.Local.iCnt.Declare
+	v.Local.sTemp.Declare
+	v.Local.iCol.Declare
+
+	Gui.F_Cancel.GsGCRC.AddGridviewFromDatatable("gvRC","dtRC")
+	Gui.F_Cancel.GsGCRC.SuspendLayout()
+	Gui.F_Cancel.GsGCRC.SetGridViewProperty("gvRC","MultiSelect",True)
+	Gui.F_Cancel.GsGCRC.SetGridViewProperty("gvRC","AllowSort",True)
+	Gui.F_Cancel.GsGCRC.SetGridViewProperty("gvRC","AllowFilter",True)
+	Gui.F_Cancel.GsGCRC.SetGridViewProperty("gvRC","ShowGroupPanel",True)
+	Gui.F_Cancel.GsGCRC.SetGridViewProperty("gvRC","EnableAppearanceOddRow",True)
+	Gui.F_Cancel.GsGCRC.SetGridViewProperty("gvRC","OptionsViewColumnAutoWidth",False)
+	
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Receiver_No","Caption","Receiver")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Transaction","Caption","Receive Date")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Reason","Caption","Reason")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","User_ID","Caption","User")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Action","Caption","Action Date")
+
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Receiver_No","AllowEdit",False)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Transaction","AllowEdit",False)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Reason","AllowEdit",False)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","User_ID","AllowEdit",False)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Action","AllowEdit",False)
+
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Receiver_No","ReadOnly",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Transaction","ReadOnly",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Reason","ReadOnly",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","User_ID","ReadOnly",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Action","ReadOnly",True)
+
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Receiver_No","MinWidth","50")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Transaction","MinWidth","125")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Reason","MinWidth","300")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","User_ID","MinWidth","125")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Action","MinWidth","125")
+
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Receiver_No","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Transaction","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Reason","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","User_ID","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Action","HeaderFontBold",True)
+
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Receiver_No","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Transaction","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Reason","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","User_ID","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Action","HeaderHAlignment","Center")
+
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Transaction","DisplayCustomDatetime","d")
+	Gui.F_Cancel.GsGCRC.SetColumnProperty("gvRC","Date_Action","DisplayCustomDatetime","d")
+	
+	Gui.F_Cancel.GsGCRC.ResumeLayout()
+	Gui.F_Cancel.GsGCRC.MainView("gvRC")
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.EndTry
+Program.Sub.LoadGvRC.End
+
+Program.Sub.LoadGvSH.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	v.Local.iNum.Declare
+	v.Local.iCnt.Declare
+	v.Local.sTemp.Declare
+	v.Local.iCol.Declare
+
+	Gui.F_Cancel.GsGCSH.AddGridviewFromDatatable("gvSH","dtSH")
+	Gui.F_Cancel.GsGCSH.SuspendLayout()
+	Gui.F_Cancel.GsGCSH.SetGridViewProperty("gvSH","MultiSelect",True)
+	Gui.F_Cancel.GsGCSH.SetGridViewProperty("gvSH","AllowSort",True)
+	Gui.F_Cancel.GsGCSH.SetGridViewProperty("gvSH","AllowFilter",True)
+	Gui.F_Cancel.GsGCSH.SetGridViewProperty("gvSH","ShowGroupPanel",True)
+	Gui.F_Cancel.GsGCSH.SetGridViewProperty("gvSH","EnableAppearanceOddRow",True)
+	Gui.F_Cancel.GsGCSH.SetGridViewProperty("gvSH","OptionsViewColumnAutoWidth",False)
+	
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Pck_No","Caption","Packing List")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Transaction","Caption","Receive Date")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Reason","Caption","Reason")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","User_ID","Caption","User")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Action","Caption","Action Date")
+
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Pck_No","AllowEdit",False)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Transaction","AllowEdit",False)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Reason","AllowEdit",False)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","User_ID","AllowEdit",False)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Action","AllowEdit",False)
+
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Pck_No","ReadOnly",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Transaction","ReadOnly",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Reason","ReadOnly",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","User_ID","ReadOnly",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Action","ReadOnly",True)
+
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Pck_No","MinWidth","50")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Transaction","MinWidth","125")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Reason","MinWidth","300")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","User_ID","MinWidth","125")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Action","MinWidth","125")
+
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Pck_No","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Transaction","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Reason","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","User_ID","HeaderFontBold",True)
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Action","HeaderFontBold",True)
+
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Pck_No","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Transaction","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Reason","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","User_ID","HeaderHAlignment","Center")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Action","HeaderHAlignment","Center")
+
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Transaction","DisplayCustomDatetime","d")
+	Gui.F_Cancel.GsGCSH.SetColumnProperty("gvSH","Date_Action","DisplayCustomDatetime","d")
+	
+	Gui.F_Cancel.GsGCSH.ResumeLayout()
+	Gui.F_Cancel.GsGCSH.MainView("gvSH")
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.EndTry
+Program.Sub.LoadGvSH.End
+
+Program.Sub.Unload.Start
+F.ODBC.Connection!con.Close
+F.Intrinsic.Control.End
+Program.Sub.Unload.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8315.16327$}$1
+${$6$}$dyunus$}$20221014142807956$}$xZ6SHi8g7O0Qsxe6AiO2NH3PnOKQRy0T/oP5kBousJTy8l/1F+rC5PpP3lYvQgu2yOzOYn0JTkc=
+Program.Sub.Comments.End
