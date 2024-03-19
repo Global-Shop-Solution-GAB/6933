@@ -1,0 +1,206 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.Form..Create(BaseForm)
+Gui.Form..Caption("Reason For Cancelling")
+Gui.Form..Size(520,148)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..AlwaysOnTop(False)
+Gui.Form..FontName("Tahoma")
+Gui.Form..FontSize(8.25)
+Gui.Form..ControlBox(True)
+Gui.Form..MaxButton(True)
+Gui.Form..MinButton(True)
+Gui.Form..MousePointer(0)
+Gui.Form..Moveable(True)
+Gui.Form..Sizeable(True)
+Gui.Form..ShowInTaskBar(True)
+Gui.Form..TitleBar(True)
+Gui.Form..Event(UnLoad,Form_Unload)
+Gui.Form.txt1.Create(TextboxM)
+Gui.Form.txt1.Enabled(True)
+Gui.Form.txt1.Visible(True)
+Gui.Form.txt1.Zorder(0)
+Gui.Form.txt1.Size(373,96)
+Gui.Form.txt1.Position(11,11)
+Gui.Form.txt1.FontName("Tahoma")
+Gui.Form.txt1.FontSize(8.25)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Enabled(True)
+Gui.Form.cmdSave.Visible(True)
+Gui.Form.cmdSave.Zorder(0)
+Gui.Form.cmdSave.Size(96,92)
+Gui.Form.cmdSave.Position(404,13)
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdSave.FontName("Tahoma")
+Gui.Form.cmdSave.FontSize(8.25)
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.sHook.Declare
+V.Global.sOrder.Declare
+V.Global.dDate.Declare
+V.Global.sStatus.Declare
+V.Global.sAction.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+V.Local.sReceiver.Declare
+V.Local.sSql.Declare
+V.Local.bExist.Declare
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+'Check if custom table exists
+F.ODBC.Connection!conx.TableExists("GAB_6933_RC",V.Local.bExist)
+F.Intrinsic.Control.If(V.Local.bExist,=,False)
+	F.ODBC.Connection!Conx.Execute("CREATE TABLE GAB_6933_RC(RECEIVER_NO VARCHAR(6), DATE_TRANSACTION DATE, REASON VARCHAR(100), USER_ID VARCHAR(8), DATE_ACTION DATE);")
+F.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!conx.TableExists("GAB_6933_SH",V.Local.bExist)
+F.Intrinsic.Control.If(V.Local.bExist,=,False)
+	F.ODBC.Connection!Conx.Execute("CREATE TABLE GAB_6933_SH(PCK_NO VARCHAR(7), DATE_TRANSACTION DATE, REASON VARCHAR(100), USER_ID VARCHAR(8), DATE_ACTION DATE);")
+F.Intrinsic.Control.EndIf
+
+V.Global.sHook.Set(V.Caller.Hook)
+F.Intrinsic.Control.If(V.Caller.Hook,=,15068)
+	F.Intrinsic.Control.If(Variable.Passed.000010,<>,"")
+		F.Intrinsic.Date.ConvertDString(Variable.Passed.000009,"YYYYMMDD",V.Global.dDate)
+'		V.Global.dDate.Set(Variable.Passed.000009)
+		F.Intrinsic.String.Build("{0}{1}",Variable.Passed.000010,Variable.Passed.000153,V.Global.sOrder)
+		F.Intrinsic.String.Build("SELECT * FROM V_PO_Receiver WHERE Receiver_No ='{0}' and Date_Received = '{1}'",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSql)
+		F.ODBC.Connection!conx.OpenRecordsetRW("rstCheck",V.Local.sSql)
+		F.Intrinsic.Control.If(V.ODBC.conx!rstCheck.EOF,=,True)
+			F.Intrinsic.String.Build("SELECT * FROM GAB_6933_RC WHERE RECEIVER_NO ='{0}' and Date_TRANSACTION = '{1}'",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSql)
+			F.ODBC.Connection!conx.OpenRecordsetRW("rstGABCheck",V.Local.sSql)
+			F.Intrinsic.Control.If(V.ODBC.conx!rstGABCheck.EOF,=,True)
+				V.Global.sStatus.Set("N")
+				F.Intrinsic.Control.CallSub(Reject,"sText","")
+			F.Intrinsic.Control.Else
+				V.Global.sStatus.Set("Y")
+				F.Intrinsic.Control.CallSub(Reject,"sText",V.ODBC.conx!rstGABCheck.FieldValTrim!Reason)
+			F.Intrinsic.Control.EndIf
+			F.ODBC.conx!rstGABCheck.Close	
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conx!rstCheck.Close
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.ElseIf(V.Caller.Hook,=,15069)
+	F.Intrinsic.Control.If(Variable.Passed.000010,<>,"")
+		F.Intrinsic.Date.ConvertDString(Variable.Passed.000009,"YYYYMMDD",V.Global.dDate)
+		F.Intrinsic.String.Build("{0}{1}",Variable.Passed.000010,Variable.Passed.000153,V.Global.sOrder)
+		F.Intrinsic.String.Build("SELECT * FROM V_PO_Receiver WHERE Receiver_No ='{0}' and Date_Received = '{1}'",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSql)
+		F.ODBC.Connection!conx.OpenRecordsetRW("rstCheck",V.Local.sSql)
+		F.Intrinsic.Control.If(V.ODBC.conx!rstCheck.EOF,=,True)
+			F.Intrinsic.String.Build("SELECT * FROM GAB_6933_RC WHERE RECEIVER_NO ='{0}' and Date_TRANSACTION = '{1}'",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSql)
+			F.ODBC.Connection!conx.OpenRecordsetRW("rstGABCheck",V.Local.sSql)
+			F.Intrinsic.Control.If(V.ODBC.conx!rstGABCheck.EOF,=,True)
+				V.Global.sStatus.Set("N")
+				F.Intrinsic.Control.CallSub(Reject,"sText","")
+			F.Intrinsic.Control.Else
+				V.Global.sStatus.Set("Y")
+				F.Intrinsic.Control.CallSub(Reject,"sText",V.ODBC.conx!rstGABCheck.FieldValTrim!Reason)
+			F.Intrinsic.Control.EndIf
+			F.ODBC.conx!rstGABCheck.Close	
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conx!rstCheck.Close
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.ElseIf(V.Caller.Hook,=,28546)	
+	'F.Intrinsic.String.Build("{0}{1}",Variable.Passed.000010,Variable.Passed.000153,V.Local.sReceiver)
+	V.Global.sOrder.Set(Variable.Passed.000168)
+	'V.Global.dDate.Set(Variable.Passed.000206)
+	F.Intrinsic.Date.ConvertDString(Variable.Passed.000206,"MMDDYY",V.Global.dDate)
+	F.Intrinsic.String.Build("SELECT * FROM V_Shipment_Header WHERE Pck_No ='{0}'",V.Global.sOrder, V.Local.sSql)
+	F.ODBC.Connection!conx.OpenRecordsetRW("rstCheck",V.Local.sSql)
+	F.Intrinsic.Control.If(V.ODBC.conx!rstCheck.EOF,=,True)
+		F.Intrinsic.String.Build("SELECT * FROM GAB_6933_SH WHERE PCK_NO ='{0}' and Date_TRANSACTION = '{1}'",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSql)
+		F.ODBC.Connection!conx.OpenRecordsetRW("rstGABCheck",V.Local.sSql)
+		F.Intrinsic.Control.If(V.ODBC.conx!rstGABCheck.EOF,=,True)
+			V.Global.sStatus.Set("N")
+			F.Intrinsic.Control.CallSub(Reject,"sText","")
+		F.Intrinsic.Control.Else
+			V.Global.sStatus.Set("Y")
+			F.Intrinsic.Control.CallSub(Reject,"sText",V.ODBC.conx!rstGABCheck.FieldValTrim!Reason)
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conx!rstGABCheck.Close	
+	F.Intrinsic.Control.EndIf
+	F.ODBC.conx!rstCheck.Close	
+F.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Reject.Start
+Gui.Form.txt1.Text(V.Args.sText)
+Gui.Form..Show			
+Program.Sub.Reject.End
+
+Program.Sub.cmdSave_Click.Start
+V.Local.sSQL.Declare
+V.Local.sType.Declare
+V.Local.sReason.Declare
+
+V.Local.sReason.Set(V.Screen.Form!txt1.Text)
+
+F.Intrinsic.Control.If(V.Local.sReason.Trim,=,"")
+	F.Intrinsic.UI.Msgbox("Blank reason is not allowed! Please type the reason first.")
+	f.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+f.Intrinsic.Control.If(V.Global.sHook,=,15068)
+	F.Intrinsic.Control.If(V.Global.sStatus,=,"N")
+		F.Intrinsic.String.Build("insert into GAB_6933_RC(RECEIVER_NO,DATE_TRANSACTION,REASON,USER_ID,DATE_ACTION) values('{0}','{1}','{2}','{3}','{4}')",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Screen.Form!txt1.Text, V.Caller.User, V.Ambient.Date.PervasiveDate, V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("Update GAB_6933_RC set Reason = '{0}', USER_ID = '{1}', DATE_ACTION = '{2}' where RECEIVER_NO = '{3}' and DATE_TRANSACTION = '{4}'",V.Screen.Form!txt1.Text, V.Caller.User, V.Ambient.Date.PervasiveDate, V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.EndIf
+f.Intrinsic.Control.ElseIf(V.Global.sHook,=,15069)
+	F.Intrinsic.Control.If(V.Global.sStatus,=,"N")
+		F.Intrinsic.String.Build("insert into GAB_6933_RC(RECEIVER_NO,DATE_TRANSACTION,REASON,USER_ID,DATE_ACTION) values('{0}','{1}','{2}','{3}','{4}')",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Screen.Form!txt1.Text, V.Caller.User, V.Ambient.Date.PervasiveDate, V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("Update GAB_6933_RC set Reason = '{0}', USER_ID = '{1}', DATE_ACTION = '{2}' where RECEIVER_NO = '{3}' and DATE_TRANSACTION = '{4}'",V.Screen.Form!txt1.Text, V.Caller.User, V.Ambient.Date.PervasiveDate, V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.EndIf
+f.Intrinsic.Control.ElseIf(V.Global.sHook,=,28546)
+	F.Intrinsic.Control.If(V.Global.sStatus,=,"N")
+		F.Intrinsic.String.Build("insert into GAB_6933_SH(PCK_NO,DATE_TRANSACTION,REASON,USER_ID,DATE_ACTION) values('{0}','{1}','{2}','{3}','{4}')",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Screen.Form!txt1.Text, V.Caller.User, V.Ambient.Date.PervasiveDate, V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Build("Update GAB_6933_SH set Reason = '{0}', USER_ID = '{1}', DATE_ACTION = '{2}' where PCK_NO = '{3}' and DATE_TRANSACTION = '{4}'",V.Screen.Form!txt1.Text, V.Caller.User, V.Ambient.Date.PervasiveDate, V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSQL)
+		F.ODBC.Connection!conx.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.EndIf
+f.Intrinsic.Control.EndIf
+
+Gui.Form.txt1.Text("")
+Gui.Form..Visible(False)
+V.Global.sAction.Set("Save")
+F.Intrinsic.Control.CallSub(Form_Unload,"sAction","Save")
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.Form_Unload.Start
+V.Local.sReason.Declare
+V.Local.sSql.Declare
+
+V.Local.sReason.Set(V.Screen.Form!txt1.Text)
+
+F.Intrinsic.Control.If(V.Global.sAction,<>,"Save")
+	F.Intrinsic.UI.Msgbox("Close this screen without saving the reason is not allowed!")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Else
+'	F.Intrinsic.String.Build("SELECT * FROM GAB_6933_SH WHERE PCK_NO ='{0}' and Date_TRANSACTION = '{1}'",V.Global.sOrder, V.Global.dDate.PervasiveDate, V.Local.sSql)
+'	F.ODBC.Connection!conx.OpenRecordsetRW("rstGABCheck",V.Local.sSql)
+'	F.Intrinsic.Control.If(V.ODBC.conx!rstGABCheck.EOF,=,True)
+'		F.Intrinsic.Control.CallSub(cmdSave_Click)
+'	F.Intrinsic.Control.Else
+		F.ODBC.Connection!conx.Close
+		F.Intrinsic.Control.End
+'	F.Intrinsic.Control.EndIf
+'	F.ODBC.conx!rstGABCheck.Close
+F.Intrinsic.Control.EndIf
+Program.Sub.Form_Unload.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8405.30089$}$1
+${$6$}$dyunus$}$20230125092324702$}$xZ6SHi8g7O0Qsxe6AiO2NH3PnOKQRy0TRBpi4iTA7W4j26LNzy4vzhsWkvag2FMbMU/mT8O5PAA=
+Program.Sub.Comments.End
